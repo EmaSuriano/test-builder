@@ -1,7 +1,7 @@
 import { Model, TextMarkdownEvent } from "survey-core";
 import { Survey } from "survey-react-ui";
 import "survey-core/defaultV2.min.css";
-import quiz from "./test-generated.json";
+import quiz from "./quiz.generated.json";
 import { PlainLight } from "survey-core/themes";
 
 const isDone = (opt: TextMarkdownEvent) =>
@@ -16,8 +16,6 @@ function SurveyComponent() {
   // Append result after value updated
   survey.onValueChanged.add((_, options) => {
     const { question } = options;
-
-    console.log(question.description);
 
     question.description = question.isAnswerCorrect()
       ? "✅"

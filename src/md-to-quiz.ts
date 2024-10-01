@@ -3,150 +3,104 @@ import { JSDOM } from "jsdom";
 import * as fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 
-// Union type for all question types
 type Question = {
-  // TODO: give support for others please
-  // type: "boolean" | "radiogroup" | "checkbox" | "ranking";
-  type: "radiogroup";
   title: string;
   description: string;
   choices: string[];
   correctAnswer: string[] | string;
+  meta?: string;
 };
 
-const testMd = fs.readFileSync("./src/test.md", "utf8");
+const { DOC_PATH } = process.env;
+if (!DOC_PATH) {
+  throw Error("Please specify doc for quiz");
+}
+
+const doc = fs.readFileSync(DOC_PATH, "utf8");
 
 // Convert markdown to HTML using `marked`
-const html = await marked(testMd);
+const html = await marked(doc);
 
 // Parse the HTML using JSDOM
 const dom = new JSDOM(html);
 const document = dom.window.document;
 
-type Option = { label: string; checked: boolean };
-
-// Helper to parse options and identify which are checked based on HTML input structure
-function parseOptions(optionElements: Element[]): Option[] {
-  return optionElements.map((li) => {
-    const input = li.querySelector("input");
-    const checked = input?.getAttribute("checked") !== null; // Check if the input is marked as checked
-    const label = li.textContent?.trim() || ""; // Get the label text
-    return {
-      label,
-      checked,
-    };
-  });
-}
-
-// TODO: give support for other types
-const getType = (
-  options: Option[],
-  isOrdered: boolean,
-): { type: Question["type"]; answers: Option[] } => {
-  const answers = options.filter((opt) => opt.checked);
-
-  // if (isOrdered) {
-  //   return { type: "ranking", answers: options.map(getText) };
-  // }
-
-  // if (options.length === 2 && answers.length === 1) {
-  //   return {
-  //     type: "boolean",
-  //     answers: options.findIndex((x) => x.checked) === 0 ? "true" : "false",
-  //   };
-  // }
-
-  if (answers.length === 1) {
-    return { type: "radiogroup", answers };
-  }
-
-  // if (answers.length > 1) {
-  //   return { type: "checkbox", answers: answers.map(getText) };
-  // }
-
-  throw new Error("Unknown question type");
-};
-
-const getText = (opt: Option) => opt.label;
-
-// Function to determine the type of the question
-function determineQuestionType(
-  title: string,
-  description: string,
-  options: Option[],
-  isOrdered: boolean,
-): Question {
-  const { type, answers } = getType(options, isOrdered);
-
-  return {
-    type,
-    title,
-    description,
-    choices: options.map(getText),
-    correctAnswer: answers.map(getText),
-  };
-}
+const title = document.querySelector("h1")?.textContent || "";
 
 // Create an array to hold all questions
 const questions: Question[] = [];
 
 // Get all sections (each question type like Checkbox, Radio button, etc.)
-const sections = document.querySelectorAll("h2");
+document.querySelectorAll("h2").forEach((section) => {
+  const question: Question = {
+    title: section.textContent || "",
+    description: "",
+    meta: "",
+    choices: [],
+    correctAnswer: [],
+  };
 
-sections.forEach((section) => {
-  const title = section.textContent || ""; // Extract the title (e.g., "Checkbox")
+  let currElem = section.nextElementSibling!;
 
-  // Get the description (the blockquote directly after the title)
-  const descriptionElement = section.nextElementSibling;
-  const description =
-    descriptionElement && descriptionElement.tagName === "BLOCKQUOTE"
-      ? descriptionElement.textContent?.trim() || ""
-      : "";
+  while (currElem && currElem.tagName !== "H2") {
+    switch (currElem.tagName) {
+      case "BLOCKQUOTE":
+        question.description = currElem.textContent?.trim() || "";
+        break;
 
-  // Get the options (answers) - could be either an unordered list (ul) or ordered list (ol)
-  const optionsElement = descriptionElement?.nextElementSibling;
-  let options: { label: string; checked: boolean }[] = [];
-  let isOrdered = false;
+      case "UL": {
+        const liElements = Array.from(currElem.querySelectorAll("li"));
+        const options = liElements.map((li) => {
+          const input = li.querySelector("input");
+          const checked = input?.getAttribute("checked") !== null; // Check if the input is marked as checked
+          const label = li.textContent?.trim() || ""; // Get the label text
 
-  if (optionsElement && optionsElement.tagName === "UL") {
-    const liElements = Array.from(optionsElement.querySelectorAll("li"));
-    options = parseOptions(liElements);
-  } else if (optionsElement && optionsElement.tagName === "OL") {
-    isOrdered = true;
-    options = Array.from(optionsElement.querySelectorAll("li")).map((li) => ({
-      label: li.textContent || "",
-      checked: false, // Ordered lists are not checkable
-    }));
+          return { label, checked };
+        });
+        question.choices = options.map((opt) => opt.label);
+        question.correctAnswer = options
+          .filter((opt) => opt.checked)
+          .map((opt) => opt.label);
+        break;
+      }
+
+      // if not recognized, then it's extra attributes
+      default:
+        question.meta += currElem.outerHTML;
+        break;
+    }
+
+    currElem = currElem.nextElementSibling!;
   }
 
-  // Determine the type of question and add it to the array
-  const question = determineQuestionType(
-    title,
-    description,
-    options,
-    isOrdered,
-  );
   questions.push(question);
 });
 
 const enhanceQuestion = (q: Question) => {
+  const { meta, ...rest } = q;
   const name = uuidv4();
 
-  return {
-    ...q,
+  const extra = meta
+    ? { type: "html", name: "meta" + name, html: q.meta }
+    : null;
+
+  const defaults = {
+    type: "radiogroup",
     name,
     choicesOrder: "random",
     enableIf: `{${name}} empty`,
     isRequired: true,
   };
+
+  return [extra, { ...rest, ...defaults }].filter(Boolean);
 };
 
 const data = {
-  title: document.querySelector("h1")?.textContent || "",
+  title,
   showProgressBar: "bottom",
-  showPrevButton: false,
-  pages: questions.map((q) => ({ elements: [enhanceQuestion(q)] })),
-
+  pages: questions
+    .sort(() => Math.random() - 0.5)
+    .map((q) => ({ elements: enhanceQuestion(q) })),
   completedHtml:
     "<h4>You got <b>{correctAnswers}</b> out of <b>{questionCount}</b> correct answers.</h4>",
   completedHtmlOnCondition: [
@@ -161,4 +115,4 @@ const data = {
   ],
 };
 
-fs.writeFileSync("./src/test-generated.json", JSON.stringify(data, null, 2));
+fs.writeFileSync("./src/quiz.generated.json", JSON.stringify(data, null, 2));

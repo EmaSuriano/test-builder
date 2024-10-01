@@ -1,2 +1,3 @@
 # test-builder
-Created with CodeSandbox
+
+Allows to create tests using Survey.js, using plain markdown.

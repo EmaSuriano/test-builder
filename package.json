@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-quiz": "tsx src/md-to-quiz"
+    "generate-quiz": "DOC_PATH=test.md tsx src/md-to-quiz"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -21,6 +21,7 @@
     "@types/jsdom": "^21.1.7",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "globals": "^15.9.0",
     "jsdom": "^25.0.1",
