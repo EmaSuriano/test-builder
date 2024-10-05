@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate-quiz": "DOC_PATH=test.md tsx src/md-to-quiz"
+    "generate-quiz": "tsx src/md-to-quiz"
   },
   "dependencies": {
     "react": "^18.3.1",
