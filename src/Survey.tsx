@@ -1,7 +1,10 @@
 import { TextMarkdownEvent } from "survey-core";
 import { Survey as SurveyReact, SurveyModel } from "survey-react-ui";
 import "survey-core/defaultV2.min.css";
-import { PlainDark, PlainLight } from "survey-core/themes";
+import {
+  ThreeDimensionalDark,
+  ThreeDimensionalLight,
+} from "survey-core/themes";
 import { useEffect, useMemo } from "react";
 import { notReachable } from "./helpers";
 
@@ -34,11 +37,11 @@ export const Survey = ({ quiz, mode, theme }: Props) => {
   useEffect(() => {
     switch (theme) {
       case "light":
-        survey.applyTheme(PlainLight);
+        survey.applyTheme(ThreeDimensionalLight);
         break;
 
       case "dark":
-        survey.applyTheme(PlainDark);
+        survey.applyTheme(ThreeDimensionalDark);
         break;
 
       default:
