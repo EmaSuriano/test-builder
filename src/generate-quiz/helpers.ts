@@ -1,23 +1,16 @@
 import { marked } from "marked";
-import { JSDOM } from "jsdom";
 import { Question, questionSchema } from "./schema";
 import { v4 as uuidv4 } from "uuid";
 
-export const markdownToDocument = async (
-  content: string,
-): Promise<Document> => {
+export const markdownToHtml = async (content: string) => {
   const html = await marked(content);
 
   const sectionRegex = /(<h2>.*?<\/h2>)(.*?)(?=<h[1-6]>|$)/gs;
 
-  const wrappedHtml = html.replace(
+  return html.replace(
     sectionRegex,
     (_, header, content) => `<section>${header}${content}</section>`,
   );
-
-  const dom = new JSDOM(wrappedHtml);
-
-  return dom.window.document;
 };
 
 const getNodeText = (elem: any): string =>

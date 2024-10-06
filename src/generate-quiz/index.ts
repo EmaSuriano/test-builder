@@ -3,8 +3,9 @@ import {
   enhanceQuestion,
   getQuestions,
   getTitle,
-  markdownToDocument,
+  markdownToHtml,
 } from "./helpers.ts";
+import { JSDOM } from "jsdom";
 
 const { DOC_PATH } = process.env;
 if (!DOC_PATH) {
@@ -13,7 +14,9 @@ if (!DOC_PATH) {
 
 const file = fs.readFileSync(DOC_PATH, "utf8");
 
-const document = await markdownToDocument(file);
+const html = await markdownToHtml(file);
+
+const { document } = new JSDOM(html).window;
 
 const title = getTitle(document);
 

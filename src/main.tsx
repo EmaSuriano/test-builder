@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
-import SurveyComponent from "./SurveyComponent.tsx";
+import { App } from "./App.tsx";
 import "./index.css";
 
 const rootElement = createRoot(document.getElementById("root")!);
-rootElement.render(<SurveyComponent />);
+rootElement.render(<App />);
